@@ -4,10 +4,14 @@ WORKDIR /app
 
 # Install dependencies
 COPY package.json bun.lockb* ./
+COPY prisma ./prisma
 RUN bun install
 
 # Copy application files
 COPY . .
+
+# Generate Prisma client
+RUN bun run db:generate
 
 # Expose ports
 EXPOSE 5173 5555
