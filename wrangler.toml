@@ -1,0 +1,22 @@
+name = "imlil-association"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "imlil-association"
+compatibility_date = "2024-01-01"
+
+[env.production.vars]
+NODE_ENV = "production"
+
+[env.production.routes]
+pattern = "imlil-association.pages.dev/*"
+custom_domain = true
+
+[env.production.build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+[env.production.build.upload]
+format = "modules"
+main = "./dist/index.js"

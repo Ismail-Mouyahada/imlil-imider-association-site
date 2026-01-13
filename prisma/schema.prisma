@@ -1,0 +1,209 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String
+  phone       String?
+  subject     String
+  message     String
+  status      ContactStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  response    String?
+  respondedAt DateTime?
+  respondedBy String?
+
+  @@map("contacts")
+}
+
+model Donation {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  donorName     String
+  donorEmail    String
+  donorPhone    String?
+  amount        Float
+  currency      String         @default("MAD")
+  paymentMethod PaymentMethod
+  status        DonationStatus @default(PENDING)
+  transactionId String?
+  bankReference String?
+  notes         String?
+  isAnonymous   Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  processedAt   DateTime?
+  processedBy   String?
+  receiptSent   Boolean        @default(false)
+  receiptSentAt DateTime?
+
+  @@map("donations")
+}
+
+model DonationGoal {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("donation_goals")
+}
+
+model BankAccount {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  bankName      String
+  accountNumber String
+  accountHolder String
+  iban          String?
+  swift         String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("bank_accounts")
+}
+
+enum ContactStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum DonationStatus {
+  PENDING
+  CONFIRMED
+  PROCESSED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CHECK
+  ONLINE
+  OTHER
+}
+
+model Wheelchair {
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  serialNumber        String? // Numéro de série du fauteuil
+  brand               String? // Marque
+  model               String? // Modèle
+  type                WheelchairType // Type de fauteuil
+  condition           WheelchairCondition @default(EXCELLENT)
+  source              WheelchairSource // Source (achat, don, etc.)
+  donorName           String? // Nom du donateur
+  donorContact        String? // Contact du donateur
+  purchaseDate        DateTime? // Date d'achat
+  receivedDate        DateTime            @default(now()) // Date de réception
+  cost                Float? // Coût d'achat (si acheté)
+  status              WheelchairStatus    @default(AVAILABLE) // Disponible, attribué, en maintenance
+  assignedTo          String?             @db.ObjectId // ID du bénéficiaire (référence)
+  assignedAt          DateTime? // Date d'attribution
+  assignedBy          String? // Personne qui a attribué
+  maintenanceNotes    String? // Notes de maintenance
+  lastMaintenanceDate DateTime? // Dernière maintenance
+  notes               String? // Notes générales
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([status])
+  @@index([assignedTo])
+  @@map("wheelchairs")
+}
+
+model Beneficiary {
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime?
+  gender             Gender?
+  phone              String?
+  email              String?
+  address            String? // Adresse complète
+  city               String?
+  postalCode         String?
+  disabilityType     String? // Type de handicap
+  disabilityLevel    String? // Niveau de handicap
+  medicalNotes       String? // Notes médicales
+  needsAssessment    String? // Évaluation des besoins
+  applicationDate    DateTime          @default(now()) // Date de demande
+  status             BeneficiaryStatus @default(PENDING) // En attente, approuvé, rejeté
+  approvedAt         DateTime? // Date d'approbation
+  approvedBy         String? // Personne qui a approuvé
+  wheelchairId       String?           @db.ObjectId // ID du fauteuil attribué (référence)
+  deliveryDate       DateTime? // Date de remise
+  deliveryLocation   String? // Lieu de remise
+  ceremonyDate       DateTime? // Date de la cérémonie de remise
+  followUpDate       DateTime? // Date de suivi
+  followUpNotes      String? // Notes de suivi
+  satisfactionRating Int? // Note de satisfaction (1-5)
+  feedback           String? // Retour du bénéficiaire
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([status])
+  @@index([wheelchairId])
+  @@map("beneficiaries")
+}
+
+enum WheelchairType {
+  MANUAL // Fauteuil manuel
+  ELECTRIC // Fauteuil électrique
+  SPORTS // Fauteuil sportif
+  STANDARD // Standard
+}
+
+enum WheelchairCondition {
+  EXCELLENT // Excellent état
+  GOOD // Bon état
+  FAIR // État moyen
+  NEEDS_REPAIR // Nécessite réparation
+}
+
+enum WheelchairSource {
+  PURCHASE // Achat
+  DONATION // Don
+  PARTNER // Partenaire
+  GOVERNMENT // Gouvernement
+}
+
+enum WheelchairStatus {
+  AVAILABLE // Disponible
+  ASSIGNED // Attribué
+  MAINTENANCE // En maintenance
+  RETIRED // Retiré
+}
+
+enum BeneficiaryStatus {
+  PENDING // En attente
+  APPROVED // Approuvé
+  REJECTED // Rejeté
+  DELIVERED // Livré
+  FOLLOW_UP // En suivi
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}

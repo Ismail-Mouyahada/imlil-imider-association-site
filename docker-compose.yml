@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: imlil-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: imlil_atlas
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - imlil-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: imlil-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mongodb://admin:admin123@mongodb:27017/imlil_atlas?authSource=admin
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./public:/app/public:ro
+      - ./prisma:/app/prisma:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - imlil-network
+    command: sh -c "bunx prisma generate && bunx prisma db push && bun run start"
+
+  # Development service (optional)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: imlil-app-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=mongodb://admin:admin123@mongodb:27017/imlil_atlas?authSource=admin
+      - VITE_API_URL=http://localhost:8080
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.bun
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - imlil-network
+    command: sh -c "bun install && bunx prisma generate && bun run dev"
+    profiles:
+      - dev
+
+  # Prisma Studio (optional - for database management)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: imlil-prisma-studio
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=mongodb://admin:admin123@mongodb:27017/imlil_atlas?authSource=admin
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./prisma:/app/prisma:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - imlil-network
+    command: sh -c "bunx prisma generate && bunx prisma studio --port 5555 --hostname 0.0.0.0"
+    profiles:
+      - studio
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  imlil-network:
+    driver: bridge
